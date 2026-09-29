@@ -1,0 +1,428 @@
+import java.awt.BorderLayout;
+import java.awt.Font;
+import java.awt.Image;
+import java.awt.event.ActionEvent;
+import java.awt.event.ActionListener;
+import javax.swing.BorderFactory;
+import javax.swing.ImageIcon;
+import javax.swing.JButton;
+import javax.swing.JFrame;
+import javax.swing.JLabel;
+import javax.swing.JPanel;
+import javax.swing.JScrollPane;
+import javax.swing.JTextArea;
+import javax.swing.JTextField;
+
+/**
+ * The main frame for the Rock Paper Scissors game.
+ */
+public class RockPaperScissorsFrame extends JFrame
+{
+    private JButton rockButton;
+    private JButton paperButton;
+    private JButton scissorsButton;
+    private JButton quitButton;
+
+    private JTextField playerWinsField;
+    private JTextField computerWinsField;
+    private JTextField tiesField;
+
+    private JTextArea resultsTextArea;
+
+    private int rockCount;
+    private int paperCount;
+    private int scissorsCount;
+    private String lastPlayerMove;
+
+    private int playerWins;
+    private int computerWins;
+    private int ties;
+
+    private Strategy cheatStrategy;
+    private Strategy randomStrategy;
+    private Strategy leastUsedStrategy;
+    private Strategy mostUsedStrategy;
+    private Strategy lastUsedStrategy;
+
+    /**
+     * Creates the Rock Paper Scissors game frame.
+     */
+    public RockPaperScissorsFrame()
+    {
+        super("Rock Paper Scissors Game");
+
+        rockCount = 0;
+        paperCount = 0;
+        scissorsCount = 0;
+        lastPlayerMove = null;
+
+        playerWins = 0;
+        computerWins = 0;
+        ties = 0;
+
+        cheatStrategy = new Cheat();
+        randomStrategy = new Random();
+        leastUsedStrategy = new LeastUsed();
+        mostUsedStrategy = new MostUsed();
+        lastUsedStrategy = new LastUsed();
+
+        setLayout(new BorderLayout());
+
+        JPanel topPanel = new JPanel(new BorderLayout());
+
+        JLabel titleLabel = new JLabel("Rock Paper Scissors Game", JLabel.CENTER);
+        titleLabel.setFont(new Font("Serif", Font.BOLD, 36));
+
+        topPanel.add(titleLabel, BorderLayout.NORTH);
+
+        JPanel statsPanel = new JPanel();
+
+        JLabel playerWinsLabel = new JLabel("Player Wins:");
+        JLabel computerWinsLabel = new JLabel("Computer Wins:");
+        JLabel tiesLabel = new JLabel("Ties:");
+
+        playerWinsField = new JTextField("0", 5);
+        computerWinsField = new JTextField("0", 5);
+        tiesField = new JTextField("0", 5);
+
+        playerWinsField.setEditable(false);
+        computerWinsField.setEditable(false);
+        tiesField.setEditable(false);
+
+        statsPanel.add(playerWinsLabel);
+        statsPanel.add(playerWinsField);
+        statsPanel.add(computerWinsLabel);
+        statsPanel.add(computerWinsField);
+        statsPanel.add(tiesLabel);
+        statsPanel.add(tiesField);
+
+        topPanel.add(statsPanel, BorderLayout.SOUTH);
+
+        add(topPanel, BorderLayout.NORTH);
+
+        resultsTextArea = new JTextArea();
+        resultsTextArea.setFont(new Font("Serif", Font.PLAIN, 18));
+        resultsTextArea.setEditable(false);
+        resultsTextArea.setLineWrap(true);
+        resultsTextArea.setWrapStyleWord(true);
+
+        JScrollPane scrollPane = new JScrollPane(resultsTextArea);
+
+        add(scrollPane, BorderLayout.CENTER);
+
+        JPanel buttonPanel = new JPanel();
+
+        ImageIcon rockIcon = new ImageIcon("src/Rock.png");
+        ImageIcon paperIcon = new ImageIcon("src/Paper.png");
+        ImageIcon scissorsIcon = new ImageIcon("src/Scissors.png");
+        ImageIcon quitIcon = new ImageIcon("src/Quit.png");
+
+        Image rockImage = rockIcon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+        Image paperImage = paperIcon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+        Image scissorsImage = scissorsIcon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+        Image quitImage = quitIcon.getImage().getScaledInstance(80, 80, Image.SCALE_SMOOTH);
+
+        rockButton = new JButton("Rock", new ImageIcon(rockImage));
+        paperButton = new JButton("Paper", new ImageIcon(paperImage));
+        scissorsButton = new JButton("Scissors", new ImageIcon(scissorsImage));
+        quitButton = new JButton("Quit", new ImageIcon(quitImage));
+
+        buttonPanel.add(rockButton);
+        buttonPanel.add(paperButton);
+        buttonPanel.add(scissorsButton);
+        buttonPanel.add(quitButton);
+
+        buttonPanel.setBorder(
+            BorderFactory.createTitledBorder("Make Your Move")
+        );
+
+        add(buttonPanel, BorderLayout.SOUTH);
+
+        ActionListener gameListener = this::playGame;
+
+        rockButton.addActionListener(gameListener);
+        paperButton.addActionListener(gameListener);
+        scissorsButton.addActionListener(gameListener);
+
+        quitButton.addActionListener(e -> System.exit(0));
+    }
+
+    /**
+     * Plays a round of Rock Paper Scissors based on the button clicked.
+     *
+     * @param ae the action event generated by the player's button click
+     */
+    private void playGame(ActionEvent ae)
+    {
+        String playerMove;
+
+        if (ae.getSource() == rockButton)
+        {
+            playerMove = "R";
+            rockCount++;
+        }
+        else if (ae.getSource() == paperButton)
+        {
+            playerMove = "P";
+            paperCount++;
+        }
+        else
+        {
+            playerMove = "S";
+            scissorsCount++;
+        }
+
+        int probability = (int)(Math.random() * 100) + 1;
+
+        Strategy selectedStrategy;
+        String strategyName;
+
+        if (probability <= 10)
+        {
+            selectedStrategy = cheatStrategy;
+            strategyName = "Cheat";
+        }
+        else if (probability <= 30)
+        {
+            selectedStrategy = leastUsedStrategy;
+            strategyName = "Least Used";
+        }
+        else if (probability <= 50)
+        {
+            selectedStrategy = mostUsedStrategy;
+            strategyName = "Most Used";
+        }
+        else if (probability <= 70)
+        {
+            if (lastPlayerMove == null)
+            {
+                selectedStrategy = randomStrategy;
+                strategyName = "Random";
+            }
+            else
+            {
+                selectedStrategy = lastUsedStrategy;
+                strategyName = "Last Used";
+            }
+        }
+        else
+        {
+            selectedStrategy = randomStrategy;
+            strategyName = "Random";
+        }
+
+        String computerMove = selectedStrategy.getMove(playerMove);
+
+        String result = determineWinner(playerMove, computerMove);
+
+        if (result.equals("Player wins!"))
+        {
+            playerWins++;
+        }
+        else if (result.equals("Computer wins!"))
+        {
+            computerWins++;
+        }
+        else
+        {
+            ties++;
+        }
+
+        playerWinsField.setText(String.valueOf(playerWins));
+        computerWinsField.setText(String.valueOf(computerWins));
+        tiesField.setText(String.valueOf(ties));
+
+        String displayString = createDisplayString(
+            playerMove,
+            computerMove,
+            result,
+            strategyName
+        );
+
+        resultsTextArea.append(displayString + "\n");
+
+        lastPlayerMove = playerMove;
+    }
+
+    /**
+     * Determines the winner of a round.
+     *
+     * @param playerMove the player's move
+     * @param computerMove the computer's move
+     * @return the result of the game
+     */
+    private String determineWinner(String playerMove, String computerMove)
+    {
+        if (playerMove.equals(computerMove))
+        {
+            return "Tie!";
+        }
+
+        if (playerMove.equals("R") && computerMove.equals("S"))
+        {
+            return "Player wins!";
+        }
+
+        if (playerMove.equals("P") && computerMove.equals("R"))
+        {
+            return "Player wins!";
+        }
+
+        if (playerMove.equals("S") && computerMove.equals("P"))
+        {
+            return "Player wins!";
+        }
+
+        return "Computer wins!";
+    }
+
+    /**
+     * Creates the text displayed for each game.
+     *
+     * @param playerMove the player's move
+     * @param computerMove the computer's move
+     * @param result the result of the game
+     * @param strategyName the strategy used by the computer
+     * @return the formatted game result
+     */
+    private String createDisplayString(
+        String playerMove,
+        String computerMove,
+        String result,
+        String strategyName)
+    {
+        String playerName = getMoveName(playerMove);
+        String computerName = getMoveName(computerMove);
+
+        String explanation;
+
+        if (playerMove.equals(computerMove))
+        {
+            explanation = playerName + " ties " + computerName + ".";
+        }
+        else if (playerMove.equals("R") && computerMove.equals("S"))
+        {
+            explanation = "Rock breaks scissors.";
+        }
+        else if (playerMove.equals("P") && computerMove.equals("R"))
+        {
+            explanation = "Paper covers rock.";
+        }
+        else if (playerMove.equals("S") && computerMove.equals("P"))
+        {
+            explanation = "Scissors covers paper.";
+        }
+        else if (computerMove.equals("R") && playerMove.equals("S"))
+        {
+            explanation = "Rock breaks scissors.";
+        }
+        else if (computerMove.equals("P") && playerMove.equals("R"))
+        {
+            explanation = "Paper covers rock.";
+        }
+        else
+        {
+            explanation = "Scissors covers paper.";
+        }
+
+        return explanation + " (" + result + " Computer: " + strategyName + ")";
+    }
+
+    /**
+     * Converts a move symbol into its full name.
+     *
+     * @param move the move symbol
+     * @return the name of the move
+     */
+    private String getMoveName(String move)
+    {
+        if (move.equals("R"))
+        {
+            return "Rock";
+        }
+        else if (move.equals("P"))
+        {
+            return "Paper";
+        }
+        else
+        {
+            return "Scissors";
+        }
+    }
+
+    /**
+     * Strategy that chooses the move that beats the player's least-used move.
+     */
+    private class LeastUsed implements Strategy
+    {
+        /**
+         * Determines the computer's move based on the player's least-used move.
+         *
+         * @param playerMove the player's move
+         * @return the move that beats the player's least-used move
+         */
+        @Override
+        public String getMove(String playerMove)
+        {
+            if (rockCount <= paperCount && rockCount <= scissorsCount)
+            {
+                return "P";
+            }
+            else if (paperCount <= rockCount && paperCount <= scissorsCount)
+            {
+                return "S";
+            }
+            else
+            {
+                return "R";
+            }
+        }
+    }
+
+    /**
+     * Strategy that chooses the move that beats the player's most-used move.
+     */
+    private class MostUsed implements Strategy
+    {
+        /**
+         * Determines the computer's move based on the player's most-used move.
+         *
+         * @param playerMove the player's move
+         * @return the move that beats the player's most-used move
+         */
+        @Override
+        public String getMove(String playerMove)
+        {
+            if (rockCount >= paperCount && rockCount >= scissorsCount)
+            {
+                return "P";
+            }
+            else if (paperCount >= rockCount && paperCount >= scissorsCount)
+            {
+                return "S";
+            }
+            else
+            {
+                return "R";
+            }
+        }
+    }
+
+    /**
+     * Strategy that uses the player's move from the previous round.
+     */
+    private class LastUsed implements Strategy
+    {
+        /**
+         * Determines the computer's move using the player's previous move.
+         *
+         * @param playerMove the player's current move
+         * @return the player's previous move
+         */
+        @Override
+        public String getMove(String playerMove)
+        {
+            return lastPlayerMove;
+        }
+    }
+}
